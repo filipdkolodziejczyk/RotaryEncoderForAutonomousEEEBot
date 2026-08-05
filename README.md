@@ -22,9 +22,9 @@ Finally, like i mentioned, how can i logially write some code which makes the ve
 
 
 # V1.0 Switch case: 
-#- a full encoder circuit assumptions and behaviours
-#-  The concept & pseudo-code
-#-  the V1.0 Code faliures, debugging, work-arounds 
+# - a full encoder circuit assumptions and behaviours
+# -  The concept & pseudo-code
+# -  the V1.0 Code faliures, debugging, work-arounds 
 
 # The circuit: a full encoder circuit assumptions and behaviours 
 The first circuit below is what one encoder looks like it has 2 channels a and b which are essentially switches which are controlled by rotating the encoder --> metal contacts touch --> closes switch --> metal contacts disconnect --> switch opens.
