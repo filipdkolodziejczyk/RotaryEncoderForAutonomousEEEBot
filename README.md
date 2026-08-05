@@ -123,3 +123,44 @@ if  tau >> frequency of oscillation 0V to 5V: The capacitor will take too long t
 <p align="center">
   <img src="assets/EncoderCircuitSignalA_Closed.jpg" alt="Encoder Circuit closed" width="500"/>
 </p>
+
+
+Now that i have disscused the open circuit the conditions before the switch was closed makes more sense now.
+
+
+## before encoder was closed:
+
+it must've been open so: 
+
+- capacitor is fully charged 
+
+- no current is flowing through the circuit 
+
+- same microcontroller assumption that its a open circuit from node 2 to microcontroller but, because the switch is open signal A = high
+
+
+## the instant the encoder was closed (TRANSIENT)
+
+
+- Current flows: +5V --> node 0 --> through R1 --> node 1 --> through ENCODER --> GND
+
+
+- because the capacitor is fully charged it starts to discharge through R2 only and that node 1 is connected to GND hence,
+tau = R2*C1
+
+- microcontroller as disscused in the open case sees the signal start to bounce, the capacitor smooths the signal  
+
+
+## The encoder switch is closed (STEADY STATE):
+
+- c1 has now fully discharged, becuase the current is only flowing from node 1 to gnd through the encoder. Node 2 now becomes 0V hence signal A = low as seen from the microcontroller.
+
+# why is the pull-up resistor needed here?
+
+- if there was no resistor for the closed case that would mean that the current going from the supply to the gnd through the encoder would be infinite (I = V/R, R = 0) but, in reality this would trigger the current limiter protection or burn through your components
+
+- it also serves a purpose of being part of the reistance which form the calculation for the time constant for the open switch version of the circuit
+
+
+
+
