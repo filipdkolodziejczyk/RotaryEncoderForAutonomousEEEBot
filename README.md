@@ -36,3 +36,90 @@ the capacitors(c1,c2) which forms the rc filter wil be treated as if it was in t
 <p align="center">
   <img src="assets/FullEncoderCircuit.jpg" alt="Encoder Circuit" width="500"/>
 </p>
+
+# The circuit: half an encoder circuit explanation and analysis
+It's much easier to understand what one side of the circuit, the other side does the exact same thing but is a step behind or ahead depending if the encoder is going forwards or backwards 
+
+
+# Encoder circuit switch A is open 
+
+
+<p align="center">
+  <img src="EncoderCircuitSignalA_Open.jpg" alt="Encoder Circuit open" width="500"/>
+</p>
+
+
+I will explain what the condtions where before the switch was opened the instant thats it was opened (transient) and after the was opened (steady state). 
+
+
+## before it was opened:
+
+( you have to trust that these where the conditions without looking to deeply into this, it will make sense once i explain both open and closed encoder switch)
+
+
+- The capacitor is fully discharged 
+
+
+- the current was flow: +5V --> node 0 --> through R1 --> node 1 --> GND 
+
+
+- the microcontroller at node 2 was seeing 0V which means that the signal was LOW, 0 or 0V
+
+
+## The instant that encoder switch is opened : (TRANSIENT)
+
+- Current flow +5V --> node 0 --> through R1 --> node 1 --> through R2 --> node 2 --> charging c1 --> GND
+
+
+- the time constant of the capacitor = R1 * R2 * C1 
+
+-  in the encoder it usually is a spring which contacts the metal. This induces vibrations which will cause the voltage to oscillate for a few microseconds before settling down for its intended state. This is prevelant in all encoders but can be mitigated through the use of gold contacts or a better spring constant of the spring used. So to summaries the encoder will bounce between 0V and 5V, between state switch on and state switch off. This causes the transients/ noise. This is called CONTACT BOUNCE.
+
+
+The micocontroller processes instruction at a rate of 240MHz so it will register every single switch state change which could cause erratic behaviour when it comes to tracking the distance travelled.
+
+
+WITHOUT a capacitor node 2 will bounce up and down untill it settle. this will cuase the noise and will ruin the tracking. WITH a capacitor the voltage spikes will be smoothed out which the microcontroller can interpret as a rising edge. the frequency of the spike will be faster than the time it takes to charge the cpacitor (this will be explained in depth below).
+
+
+Time consant of the cap:
+defined by: tau = r*c ==> tau = R1*R2*C1 and for charging capacitor 1 tau = 63% charge of the cap im not going into the maths here
+
+
+It takes about 5 * tau for a complete charge discharge
+
+
+if tau << frequency of oscillation 0V to 5V:
+
+
+cap charges and discharges instantly so there is no smoothing
+
+
+if tau == frequency of oscillation 0V to 5V:
+
+the voltage at node 2 becomes wobbly at at a median value like 2.5V which is no good for a microcontroller which has thresholds for what it considers as high or low 
+
+
+if tau > frequency of oscillation 0V to 5V:
+
+The capacitor is slightly too slow(5ms) to react to the individual spikes (50us changes). this means that the voltage is averaged out which is what i need. 
+
+if  tau >> frequency of oscillation 0V to 5V: The capacitor will take too long to charge / discharge so the signal will change in real time but the cpacitor is taking too long hence there will be data lost.
+
+
+## The encoder switch is open (STEADY STATE):
+
+
+- To reiterate, ther current can't flow through the encoder becuase the switch is opened. The current can't flow through the capacitor anymore becuase the voltage at is no longer bouncing so no current flows to the gnd through the cap ( I = C*dV/dt) and the assumption we had that the microcontroller is treated a if it is an open circuit means that anywhere on the circuit the voltage is 5V becuase no current can flow. The microcontroller sees this and at node 2 the voltage is 5V therefore, the signal is high.
+
+
+# summary : when the encoder switch is open, signal A = high
+
+
+
+# Encoder circuit switch A is closed
+
+
+<p align="center">
+  <img src="EncoderCircuitSignalA_Closed.jpg" alt="Encoder Circuit open" width="500"/>
+</p>
