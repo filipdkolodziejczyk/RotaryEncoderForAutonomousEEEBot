@@ -45,7 +45,7 @@ It's much easier to understand what one side of the circuit, the other side does
 
 
 <p align="center">
-  <img src="EncoderCircuitSignalA_Open.jpg" alt="Encoder Circuit open" width="500"/>
+  <img src="assets/EncoderCircuitSignalA_Open.jpg" alt="Encoder Circuit open" width="500"/>
 </p>
 
 
@@ -121,5 +121,5 @@ if  tau >> frequency of oscillation 0V to 5V: The capacitor will take too long t
 
 
 <p align="center">
-  <img src="EncoderCircuitSignalA_Closed.jpg" alt="Encoder Circuit open" width="500"/>
+  <img src="assets/EncoderCircuitSignalA_Closed.jpg" alt="Encoder Circuit closed" width="500"/>
 </p>
