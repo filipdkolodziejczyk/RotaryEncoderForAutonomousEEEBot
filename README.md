@@ -21,7 +21,10 @@ Finally, like i mentioned, how can i logially write some code which makes the ve
 
 
 
-## V1.0 Switch case: a full encoder circuit assumptions and behaviours , The concept, the code and justification, faliures and workarounds 
+# V1.0 Switch case: 
+#- a full encoder circuit assumptions and behaviours
+#-  The concept & pseudo-code
+#-  the V1.0 Code faliures, debugging, work-arounds 
 
 # The circuit: a full encoder circuit assumptions and behaviours 
 The first circuit below is what one encoder looks like it has 2 channels a and b which are essentially switches which are controlled by rotating the encoder --> metal contacts touch --> closes switch --> metal contacts disconnect --> switch opens.
@@ -38,7 +41,7 @@ the capacitors(c1,c2) which forms the rc filter wil be treated as if it was in t
 </p>
 
 # The circuit: half an encoder circuit explanation and analysis
-It's much easier to understand what one side of the circuit, the other side does the exact same thing but is a step behind or ahead depending if the encoder is going forwards or backwards 
+It's much easier to understand what one side of the circuit does becasue, the other side does the exact same thing but is a step behind or ahead depending on if the encoder is going forwards or backwards. 
 
 
 # Encoder circuit switch A is open 
@@ -49,7 +52,7 @@ It's much easier to understand what one side of the circuit, the other side does
 </p>
 
 
-I will explain what the condtions where before the switch was opened the instant thats it was opened (transient) and after the was opened (steady state). 
+I will explain what the condtions where before the switch was opened the instant thats it was opened (transient) and after it was opened (steady state). 
 
 
 ## before it was opened:
@@ -89,22 +92,22 @@ defined by: tau = r*c ==> tau = R1*R2*C1 and for charging capacitor 1 tau = 63% 
 It takes about 5 * tau for a complete charge discharge
 
 
-if tau << frequency of oscillation 0V to 5V:
+- if tau << frequency of oscillation 0V to 5V:
 
 
 cap charges and discharges instantly so there is no smoothing
 
 
-if tau == frequency of oscillation 0V to 5V:
+- if tau == frequency of oscillation 0V to 5V:
 
 the voltage at node 2 becomes wobbly at at a median value like 2.5V which is no good for a microcontroller which has thresholds for what it considers as high or low 
 
 
-if tau > frequency of oscillation 0V to 5V:
+- if tau > frequency of oscillation 0V to 5V:
 
 The capacitor is slightly too slow(5ms) to react to the individual spikes (50us changes). this means that the voltage is averaged out which is what i need. 
 
-if  tau >> frequency of oscillation 0V to 5V: The capacitor will take too long to charge / discharge so the signal will change in real time but the cpacitor is taking too long hence there will be data lost.
+- if  tau >> frequency of oscillation 0V to 5V: The capacitor will take too long to charge / discharge so the signal will change in real time but the cpacitor is taking too long hence there will be data lost.
 
 
 ## The encoder switch is open (STEADY STATE):
@@ -114,11 +117,6 @@ if  tau >> frequency of oscillation 0V to 5V: The capacitor will take too long t
 
 
 # summary : when the encoder switch is open, signal A = high
-
-
-
-
-
 
 # Encoder circuit switch A is closed
 
@@ -158,17 +156,16 @@ tau = R2*C1
 
 - c1 has now fully discharged, becuase the current is only flowing from node 1 to gnd through the encoder. Node 2 now becomes 0V hence signal A = low as seen from the microcontroller.
 
-# why is the pull-up resistor needed here?
+## why is the pull-up resistor(R1) needed here?
 
 - if there was no resistor for the closed case that would mean that the current going from the supply to the gnd through the encoder would be infinite (I = V/R, R = 0) but, in reality this would trigger the current limiter protection or burn through your components
 
 - it also serves a purpose of being part of the reistance which form the calculation for the time constant for the open switch version of the circuit
 
 
-
-
-
 # summary : when the encoder switch is open, signal A = low
+
+
 
 
 
