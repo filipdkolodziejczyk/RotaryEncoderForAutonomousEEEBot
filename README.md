@@ -117,6 +117,9 @@ if  tau >> frequency of oscillation 0V to 5V: The capacitor will take too long t
 
 
 
+
+
+
 # Encoder circuit switch A is closed
 
 
@@ -160,6 +163,12 @@ tau = R2*C1
 - if there was no resistor for the closed case that would mean that the current going from the supply to the gnd through the encoder would be infinite (I = V/R, R = 0) but, in reality this would trigger the current limiter protection or burn through your components
 
 - it also serves a purpose of being part of the reistance which form the calculation for the time constant for the open switch version of the circuit
+
+
+
+
+
+# summary : when the encoder switch is open, signal A = low
 
 
 
