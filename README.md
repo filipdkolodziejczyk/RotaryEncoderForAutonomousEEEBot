@@ -215,10 +215,15 @@ so basic concept, ill need to package these 2 signals into 1 variable and then c
 
 
 |   state   | Signal A  |  Signal B  |
+
 |     0     |    0      |     0      |
+
 |     1     |    1      |     0      |
+
 |     2     |    1      |     1      |
+
 |     3     |    0      |     1      |
+
 |     0     |    0      |     0      |
 
 
@@ -254,10 +259,15 @@ so from the state diagram we have :
 
 
 |   state   | Signal A  |  Signal B  |
+
 |     0     |    0      |     0      |
+
 |     1     |    1      |     0      |
+
 |     2     |    1      |     1      |
+
 |     3     |    0      |     1      |
+
 |     0     |    0      |     0      |
 
 
