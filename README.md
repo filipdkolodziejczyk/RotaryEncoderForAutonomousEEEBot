@@ -22,11 +22,11 @@ Finally, like i mentioned, how can i logially write some code which makes the ve
 
 
 # V1.0 Switch case: 
-# - a full encoder circuit assumptions and behaviours
-# -  The concept & pseudo-code
+# - full encoder circuit assumptions, half encoder circuit explanation and analysis
+# -  The concept, early problems & pseudo-code
 # -  the V1.0 Code faliures, debugging, work-arounds 
 
-# The circuit: a full encoder circuit assumptions and behaviours 
+# The circuit: a full encoder circuit assumptions 
 The first circuit below is what one encoder looks like it has 2 channels a and b which are essentially switches which are controlled by rotating the encoder --> metal contacts touch --> closes switch --> metal contacts disconnect --> switch opens.
 
 
@@ -166,7 +166,361 @@ tau = R2*C1
 # summary : when the encoder switch is open, signal A = low
 
 
+# -  The concept & pseudo-code
+
+
+## The Concept, early problems
+
+The way the signal A and B interact is how this encoder works. Below, there is a diagram which features what the signal should look like when turning the wheel clockwise and anti-clockwise.
+
+<p align="center">
+  <img src="assets/Quadrate_encoder_signals.jpg" alt="Quadrate_encoder_signal" width="500"/>
+</p>
+
+
+So if the encoder is going forwards ( clockwise ) the signal will be as follows:
+
+Assuming we are starting at Signal A = 0 Signal B = 0
+
+| Signal A  |  Signal B  |
+|    0      |     0      |
+|    1      |     0      |
+|    1      |     1      |
+|    0      |     1      |
+|    0      |     0      |
+
+it then repeats. if i wanted to go backwards then the cycle is reversed
+
+Below are the ocilliscope readings where it shows what the actual signal looks like:
+
+<p align="center">
+  <img src="assets/dso_01_01_00_09_14.bmp" alt="Quadrate_Scope_Readings" width="500"/>
+</p>
+
+ignore the voltage levels this is a problem with the oscilliscope both voltages are the same i tested it by switching the probes around on the actual scope and the values switch.
+
+But the main this to look at is the during SignalA = 0 & SignalB = 1 THIS STATE DOESNT EXIST i did a zoom in on the actual readings and this is it below:
+
+
+<p align="center">
+  <img src="assets/dso_01_01_00_03_38.bmp" alt="Quadrate_Scope_Readings_zoom" width="500"/>
+</p>
+
+this is too fast and impossible for the microcontroller to know that this should be SignalA = 0 & SignalB = 1. in V1 of the code i didnt realise but, in V2 i took note of it.
+
+
+##State diagram 
+
+so basic concept, ill need to package these 2 signals into 1 variable and then create 4 variables which have to go into a certain order so originally i thought of using a bunh of if statements with conditions being just the signals and also initially establishing what the signals was before moving off it could be any of the 4 variables this is the breakdown of it below:
+
+
+|   state   | Signal A  |  Signal B  |
+|     0     |    0      |     0      |
+|     1     |    1      |     0      |
+|     2     |    1      |     1      |
+|     3     |    0      |     1      |
+|     0     |    0      |     0      |
 
 
 
 
+// defining which state im in before moving off
+
+if (signala == 0 && signalb == 0 ){
+    
+    current_state = s0
+}
+so on....
+
+### I establish what state im currently starting in 
+
+void loop{
+
+read the signal a and b at this current moment
+
+
+switch(this is the main variable 'currentState' which dynamically changes'){
+    
+    case test_variable:
+    // if the main variable is the same as the test_variable the code below executes
+    /* code to be executed*/
+    break; // end of the line of code to be executed exits the switch case
+
+}
+
+## focus on the next point i'll say
+
+so from the state diagram we have :
+
+
+|   state   | Signal A  |  Signal B  |
+|     0     |    0      |     0      |
+|     1     |    1      |     0      |
+|     2     |    1      |     1      |
+|     3     |    0      |     1      |
+|     0     |    0      |     0      |
+
+
+becuase we can only go clockwise and anti-clockwise.If i'm in state 3 the only states that i can go to next is state 2 if im going backwards physically the wheel is spinning anti-clockwise or state 0 is i'm going forwards. This works for all states in V1 but in V2 the code is updatd for the impossible state which doesnt exist for now i included it in the code.So, the code will look like this:
+
+
+
+```cpp 
+Example code snippet switch-case
+
+int LeftEncoderPulseCount (int leftSignalA, int leftSignalB){
+
+      switch(currentState){
+        case S0:                                    //currently start at S0
+         if(leftSignalA == 1 && leftSignalB == 0){
+           currentState = S1;                          // MOVE TO NEXT STATE
+          pulseCount ++;
+          Serial.print("Pulse count: ");                              //mealy machine output
+          Serial.println(pulseCount);                 // printing mealy machine output
+         }
+       else if(leftSignalA == 0 && leftSignalB == 1) {
+        currentState = S3;                            //backwards movement
+       }
+       break;
+       
+    return pulseCount;
+}
+
+```
+i've noticed a bug but there should be a decrement pulse count if im going backwards but that tis the gist of the code. then using the pulse count i can calculate the distance becuase i know that from the encoder datasheet:
+
+
+- so i can now measure if the car goes forward and backwards now i need to do some maths:
+
+    circumfrence of a circle = 2*pi*radius
+    from testing, marking it at top dead center and rotating the wheel so it gets back to the same spot, how many pulses?
+    
+    1 revolution = 10 pulses
+    
+    10 pulses = 2*pi*3.1
+    
+    1 pulse distance = (2*pi*3.1)/10
+    
+    1 pulse dist = (pi*3.1)/5 
+    
+    hence,
+    
+    target pulse count = input distance/ 1 pulse dist
+    
+    then fromt he switch case i update the count for every movement forwards 
+    
+    
+    in main loop 
+    
+    switchcase
+    return pulsecount
+    
+    go forwrds 
+    
+    if pulsecount > target pulse count 
+    
+    stop 
+    
+   pretty simple so understand i'll provide the full code so that it makes sense 
+   
+ <details>
+ 
+<summary>🔍 <b>Click to expand V1.0 Baseline Code (Mealy State Machine)</b></summary>
+
+```cpp
+
+#define enA 33  // Enable A command line
+#define enB 25  // Enable B command line
+
+#define INa 26  // Channel A Direction
+#define INb 27  // Channel A Direction
+#define INc 14  // Channel B Direction
+#define INd 12  // Channel B Direction
+
+#include <math.h>
+
+const int ledChannela = 0;
+const int ledChannelb = 1;
+//gpio pins used for left motor
+const int leftmotorChannelaPin = 36;
+const int leftmotorChannelbPin = 39;
+
+int i = 0;
+int leftSignalA = 0;
+int leftSignalB = 0;
+int pulseCount = 0;
+
+//enum assigns variables to numbers but it is always starts with 0 then 1 so on..
+enum States {S0 = 0, S1 = 1, S2 = 2, S3 = 3};
+States currentState;
+//define single pulse distance IN CM
+const float singlePulseDist = (M_PI*3.1)/5;
+//Input distance wanted into this variable IN CM
+const int InputDist = 38;
+
+void setup() {
+
+  //conffiguring encoder pins as inputs
+  pinMode(leftmotorChannelaPin,INPUT);
+  pinMode(leftmotorChannelbPin,INPUT);
+  
+  // Configure motor direction pins as outputs
+  pinMode(INa, OUTPUT);
+  pinMode(INb, OUTPUT);
+  pinMode(INc, OUTPUT);
+  pinMode(INd, OUTPUT);
+
+  // Attach PWM channels to pins
+  ledcAttachPin(enA, ledChannela);
+  ledcAttachPin(enB, ledChannelb);
+
+  // Initialize PWM channels
+  ledcSetup(ledChannela, 1000, 8); // 1000 Hz PWM, 8-bit resolution
+  ledcSetup(ledChannelb, 1000, 8); // 1000 Hz PWM, 8-bit resolution
+
+  //define a cuurent state depending on real position of encoder and also reaidng it just once before it starts 
+  leftSignalA = digitalRead(leftmotorChannelaPin);
+  leftSignalB = digitalRead(leftmotorChannelbPin);
+  if(leftSignalA == 0 && leftSignalB == 0){
+    currentState = S0;
+  }
+  else if(leftSignalA == 1 && leftSignalB == 0){
+    currentState = S1;
+  }
+  else if(leftSignalA == 1 && leftSignalB == 1){
+    currentState = S2;
+  }
+else{
+  currentState = S3;
+}
+  // Begin serial communication
+  Serial.begin(115200);
+  Serial.println("ESP32 Running"); 
+}
+
+void loop() {
+  leftSignalA = digitalRead(leftmotorChannelaPin);
+  leftSignalB = digitalRead(leftmotorChannelbPin);
+  //Serial.println(singlePulseDist);
+
+  //Serial.print("LeftMotor Channel A : ");
+  //Serial.println(leftSignalA);
+
+  //Serial.print("LeftMotor Channel B : ");
+  //Serial.println(leftSignalB);
+  LeftEncoderPulseCount(leftSignalA,leftSignalB);
+
+  goForwards();
+  // Add a delay or other functions to control when directions change or stop
+  DistanceCalculator (pulseCount);
+
+  
+}
+
+void goForwards() {
+
+
+  // Set motor direction for forwards movement
+  digitalWrite(INa, LOW);
+  digitalWrite(INb, HIGH);
+  digitalWrite(INc, HIGH);
+  digitalWrite(INd, LOW);
+
+
+  // Set speed (duty cycle) for both motors
+  ledcWrite(ledChannela, 90); // Full speed for motor A
+  ledcWrite(ledChannelb, 90); // Full speed for motor B
+
+  //delay(1000); // Example delay - adjust as needed for your application
+
+  // You might want to add code here to stop the motors after moving forward
+}
+
+void Stop() {
+  // Set motor direction for forwards movement
+  digitalWrite(INa, HIGH);
+  digitalWrite(INb, LOW);
+  digitalWrite(INc, LOW);
+  digitalWrite(INd, HIGH);
+  // Set speed (duty cycle) for both motors
+  ledcWrite(ledChannela, 100); // Full speed for motor A
+  ledcWrite(ledChannelb, 100); // Full speed for motor B
+  delay(60);
+  digitalWrite(INa, HIGH);
+  digitalWrite(INb, LOW);
+  digitalWrite(INc, LOW);
+  digitalWrite(INd, HIGH);
+  // Set speed (duty cycle) for both motors
+  ledcWrite(ledChannela, 0); // Full speed for motor A
+  ledcWrite(ledChannelb, 0); // Full speed for motor B
+  delay(100000000);
+  Serial.print("Distance travelled/cm : ");
+  Serial.println(InputDist);
+}
+
+void DistanceCalculator (int pulseCount){
+  int NumOfPulses = (InputDist-10)/singlePulseDist;       //19cm is the distance from the back to the front wheels to take into account that the back wheels will be set back 
+  if(pulseCount>NumOfPulses){
+    Stop();
+  }
+}
+
+int LeftEncoderPulseCount (int leftSignaA, int leftSignalB){
+
+      switch(currentState){
+        case S0:                                    //currently at S0
+         if(leftSignalA == 1 && leftSignalB == 0){
+           currentState = S1;                          // MOVE TO NEXT STATE
+          pulseCount ++;
+          Serial.print("Pulse count: ");                              //mealy machine output
+          Serial.println(pulseCount);                 // printing mealy machine output
+         }
+       else if(leftSignalA == 0 && leftSignalB == 1) {
+        currentState = S3;                            //backwards movement
+       }
+       break;
+    
+        case S1:
+        if(leftSignalA == 1 && leftSignalB == 1){
+          currentState = S2;
+          pulseCount ++;
+          Serial.print("Pulse count: ");
+          Serial.println(pulseCount); 
+        }
+        else if(leftSignalA == 0 && leftSignalB ==0){
+          currentState = S0;                        // backwards movement
+        }
+        break;
+      
+        case S2:
+        if(leftSignalA == 0 && leftSignalB == 1){
+          currentState = S3;
+          pulseCount ++;
+          Serial.print("Pulse count: ");
+          Serial.println(pulseCount); 
+        }
+        else if(leftSignalA == 1 && leftSignalB == 0)
+        currentState = S1;                          // backward movement
+        break;
+
+        case S3:
+        if(leftSignalA == 0 && leftSignalB == 0){
+          currentState = S0;
+          pulseCount ++;
+          Serial.print("Pulse count: ");
+          Serial.println(pulseCount);
+        }
+        else if (leftSignalA == 1 && leftSignalB == 1){
+          currentState = S2;                        //backwards
+        }
+        break;
+      }
+      return pulseCount;
+}
+    
+```
+
+<br>
+    
+    
+    
