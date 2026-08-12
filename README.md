@@ -537,5 +537,97 @@ int LeftEncoderPulseCount (int leftSignaA, int leftSignalB){
 
 <br>
     
+# V2.0 Look Up Table(LUT) Matrix Solution : 
+# - Post Mortem
+# - Design Improvements
+# - V3.0 Object Orientated Programming (OOP!!!) 
+    ## - why was it added ?
+    ## - tests & verification
     
     
+# Post-Mortem 
+
+
+The hardware is staying the same but, the problems for the switch case are as follows:
+
+ -  In the code, if the car goes backwards the motion is not accunted for because i don't have a pulseCount-- (decrement). I found that in the code whilst doing this write up 
+ 
+ - Because of the above and also a big problem which involves the mechanical encoder vibrating between changing states and VIBRATING. pulseCount is being calculated and im not getting a constant distance on every single run, the actual precision is poor
+ 
+ - The signal change from signal A = 1 & signal B = 1 --> signal A = 0 & signal B = 1 --> signal A = 0 & signal B = 0 from the datasheet misses the signal A = 0 & signal B = 1 state so the actual signal i see 
+ 
+ 
+  signal A = 0 & signal B = 0 --> signal A = 1 & signal B = 0 --> signal A = 1 & signal B = 1 --> back to the front( if going forward )
+    
+- the actual structure of the software is flawed and is not good for continual improvements for later developers or myself. Including more duplicates of if and switch cases for the other encoder seemed long which meant that it probaly took longer for the cpu to execute becsuse there could be multiple N branches to go through. the readability would improve since i would only need to declare the matrix once to memory. The noise/the voided state can be eliminated if i just set that to 0 but keep it in the code for completness.
+
+
+    
+    i had ai give me and overview of how i can code this during my v1.0 stage but it required more complexity so i decided to code the first one with if statements and then improve by using the LUT which is considered the gold standard in embedded software
+
+
+# - Design Improvements
+
+
+- i'll break down the LUT implementation and how the indexing works 
+
+- since we are needing this to be generated once i put this into setup which only runs once, this creates an 2d array [4x4] where the top left element is 0,0 becuase this is still an array the comments show what the signal a&b correspond to the value allocated
+
+```cpp
+void setup{
+
+const int encoderTable[4][4]={
+    /*New states      00,  01, 10, 11*/
+    /*old state 00*/{  0,  0,  1,   -1},
+    /*old state 01*/{  0,  0,  0,   0 },
+    /*old state 10*/{ -1,  0,  0,   1 },
+    /*old state 11*/{  1,  0, -1,   0 }       
+};  
+
+}
+```
+
+
+-  looking at this encoderTable[x][y] --> encoderTable[old state][new state] , its the same concept as the switch case but in a 2s matrix
+
+
+- if are going forward from V1.0 code we go from:
+    
+    State 0 (signal a = 0 b = 0) --> State 1 (signal a = 1 b = 0) --> State 2 (signal a = 1 b = 1) --> State 0 ( because State 3 does'nt exist). 
+
+each state is made up from a signal value A and B so i need a way to combine these variables which are constatntly changing into an index. drum roll.......Bitwise operation.
+
+## - Bitwise Operation concept 
+
+so i need 1 variable (an index) to control the LUT but i have 2 signals a and b which read the data. 
+
+lets say we have signal a = 1 and b = 0, i i can use the | (or operand) to put these two bits together to form 1 byte 
+
+bit wise opperand >> left shift shifts the signal A left by n bit (signal a *2^n)
+
+so instead of having both of these in the same bit collumn 0 we have the signal b in 0 and the signal a in 1
+
+i think this is quite a bad explanation but you just have to accept that the bit shift to the left by 1 and that both of these signals cant affect eachother but then when we glue both of these signals together what is the output?
+
+because this is bit shifted and i am using an or the or gate's output is true/false and condenses both the signals but the shifted bitwise byte represents the binary value so 
+
+
+|   state   | Signal A  |  Signal B  |    binary value    |
+
+|     0     |    0      |     0      |         0          |
+
+|     1     |    1      |     0      |         2          |
+
+|     2     |    1      |     1      |         3          |
+
+|     3     |    0      |     1      |         1          |
+
+|     0     |    0      |     0      |         0          |
+
+
+
+so from this its quite easy to be confused as to why the states dont match up with the numbers but when i was debugging i woud need to see 0 --> 2 --> 3 --> 0 if i was going forward and this worled like a charm now back to the LUT.
+
+
+# LUT
+
