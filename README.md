@@ -174,7 +174,7 @@ tau = R2*C1
 The way the signal A and B interact is how this encoder works. Below, there is a diagram which features what the signal should look like when turning the wheel clockwise and anti-clockwise.
 
 <p align="center">
-  <img src="assets/Quadrate_encoder_signals.jpg" alt="Quadrate_encoder_signal" width="500"/>
+  <img src="assets/Quadrate_encoder_signals.png" alt="Quadrate_encoder_signal" width="500"/>
 </p>
 
 
@@ -182,12 +182,17 @@ So if the encoder is going forwards ( clockwise ) the signal will be as follows:
 
 Assuming we are starting at Signal A = 0 Signal B = 0
 
-| Signal A  |  Signal B  |
-|    0      |     0      |
-|    1      |     0      |
-|    1      |     1      |
-|    0      |     1      |
-|    0      |     0      |
+|  Signal A  |  Signal B  |
+
+|     0      |     0      |
+
+|     1      |     0      |
+
+|     1      |     1      |
+
+|     0      |     1      |
+
+|     0      |     0      |
 
 it then repeats. if i wanted to go backwards then the cycle is reversed
 
