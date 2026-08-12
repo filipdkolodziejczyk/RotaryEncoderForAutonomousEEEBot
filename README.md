@@ -535,7 +535,6 @@ int LeftEncoderPulseCount (int leftSignaA, int leftSignalB){
     
 ```
 
-<br>
     
 # V2.0 Look Up Table(LUT) Matrix Solution : 
 # - Post Mortem
