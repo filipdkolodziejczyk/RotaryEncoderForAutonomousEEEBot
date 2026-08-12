@@ -338,9 +338,12 @@ i've noticed a bug but there should be a decrement pulse count if im going backw
     
    pretty simple so understand i'll provide the full code so that it makes sense 
    
- <details>
  
-<summary>🔍 <b>Click to expand V1.0 Baseline Code (Mealy State Machine)</b></summary>
+ 
+<details>
+<summary>🔻 <b>Click to expand V1.0 Baseline Code (Mealy State Machine)</b></summary>
+
+<br>
 
 ```cpp
 
