@@ -97,7 +97,7 @@ float steeringAngle=93;  // variable to store the servo position
 
   
 
-// State mapping how encoder sequence worls decoding the way its designed
+// State mapping how encoder sequence works decoding the way its designed
 enum States {S0 = 0, S1 = 1, S2 = 2, S3 = 3};
 States leftInitialState;
 States rightInitialState;
@@ -362,7 +362,7 @@ struct NavScript{
 // route array of data structures of NavScript
 
 NavScript route[] = {
-  /*
+  
   //===figure of 8====//
   {forward, 195},       //index 0
   {right_turn, 125},     //index 1 
@@ -374,9 +374,13 @@ NavScript route[] = {
   {stop, 0}
  //==============================//
  //====tightest turning circle==//
- */
+ 
+ /*
  {forward, 145},
  {right_tight,600}
+ */
+ 
+ 
 };
 
 //need pointers to scroll through this array which is currentRouteIndex and the totalSteps function is needed so if i add or delete steps is adjusts it here

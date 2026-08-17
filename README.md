@@ -590,7 +590,7 @@ const int encoderTable[4][4]={
 ```
 
 
--  looking at this encoderTable[x][y] --> encoderTable[old state][new state] , its the same concept as the switch case but in a 2s matrix
+-  looking at this encoderTable[x][y] --> encoderTable[old state][new state] , its the same concept as the switch case but in a 2d matrix
 
 
 - if are going forward from V1.0 code we go from:
@@ -628,8 +628,107 @@ because this is bit shifted and i am using an or the or gate's output is true/fa
 
 
 
-so from this its quite easy to be confused as to why the states dont match up with the numbers but when i was debugging i woud need to see 0 --> 2 --> 3 --> 0 if i was going forward and this worled like a charm now back to the LUT.
+so from this its quite easy to be confused as to why the states dont match up with the numbers but when i was debugging i woud need to see 0 --> 2 --> 3 --> 0 if i was going forward and this worked like a charm now back to the LUT.
 
 
 # LUT
+
+i used a 2d matrix array fot the look up table this is a much cleaner solution to branches of if else statements which makes the code more readable. the code if it has if else branches doesnt have to evaluate N branches untill its the statement is true the LUT always has the same clock cyccles regardless of direction of the wheel spinning and state.
+
+
+avoids copy and paste logic wen integrating the other encoder in V3.0, it reuses the same LUT Saves memory space. Also for my dead state of Signal A = 0 Signal B = 1 which doesnt occur in my encoders i can just set that value to 0 in the matrix table which will eliminate any electrical chatter.
+
+i used bitwise operation here to combine both the signal a & b so that it can be a index.
+
+
+```cpp
+
+  //  Map pins to matrix state index
+  currentStateNum = (leftSignalA << 1) | leftSignalB;  
+
+```
+for the leftsignal all it does is shift the bit to the right ( equivalent to multiplying by 2^1 ) and the OR will just glue the signal b to the shifted left signal both signasl will never interrupt.
+
+
+# debounce filter 
+
+Even with the the precise allocation of the tau values which masks the high frequency bouncing of the encoders mechanical switch there is still some bouncing which occured which deviates my value for pulse count. For precise movements using my encoders this was giving me poor accuracy.
+
+the the debounce filter will act like a bouncer at a club if teh bouncer sees that your moving side to side erratically he wont let you in the club. if the bouncer sees you checks your id and your not swaying side to side he will let ypu in the club.
+
+
+now to put it more technically there is a thershold for how long you have to stay still for before you can eneter the club.
+
+
+first we start off with the decounce counter at 0 and set the thershold to 6 so the value will need to stay the same for 6 consecutive cycles before i can get a value from the matrix which will then determine if the pulse count goes up down or stays the same.
+
+The initial start up state
+
+``` cpp
+
+  if(leftSignalA == 0 && leftSignalB == 0)      { currentState = S0; previousStateNum = 0; }
+  else if(leftSignalA == 1 && leftSignalB == 0) { currentState = S1; previousStateNum = 2; }         
+  else if(leftSignalA == 1 && leftSignalB == 1) { currentState = S2; previousStateNum = 3; }         
+  else                                          { currentState = S3; previousStateNum = 1; }          
+
+  //initialises what the state is at the start for the debounce filter
+  stableStateNum = previousStateNum;
+
+```
+
+reading the values 
+
+``` cpp
+
+  //  Map pins to matrix state index
+  currentStateNum = (leftSignalA << 1) | leftSignalB;  
+  
+  ```
+
+if the state is the same as we read in the previous cycle then nothing happens 
+if it changes we increase the count by 1 exit the loop read again its tnot the same increase by 1 exit loop read again...Evantually i reach the threshold of 6
+
+```cpp
+
+int LeftEncoderPulseCount(int leftSignaA, int leftSignalB){
+  
+  // If the pins match our accepted stable state, reset the counter
+  if (currentStateNum == stableStateNum) {
+    debounceCounter = 0;
+  } 
+  // If the pins changed, start counting how long they stay at this new value
+  else {
+    debounceCounter++;
+
+```
+we enter the matrix get the value which the change corresponds to by using the y value (stableStateNum) which is the old state 
+and the x value (currentStateNum) the new state that it changed to get a value in the actual matrix and change the pulse count
+
+```cpp
+
+    if (debounceCounter >= debounceThreshold) {
+      int MatrixValue = encoderTable[stableStateNum][currentStateNum];
+      pulseCount += MatrixValue;
+      
+            // Update our memories to the new confirmed state
+      stableStateNum = currentStateNum;
+      previousStateNum = currentStateNum;
+      debounceCounter = 0;
+    }
+
+```
+
+in the end i needed to change the new state to become the now old state (stableStateNum = currentStateNum;)
+
+
+ # Quick reflection
+ 
+ 
+- i have noticed that the previous state num variable is not used as well as the enum struct these are not used and take up memory the enum states provide what  i was thinking at the time that we are is state 2 but the value is 3 i just wanted to add that so it makes sense the concept i had in my head but theze variables are useless.
+
+
+# - V3.0 Object Orientated Programming (OOP!!!) 
+
+FINALLY, the last part i wanted to talk about when programming this the way i was taught in cpp at uni was a strict syntax with destructive constructive etc.... i cant remmember each part but using arduino is so much simpler but it does alot of the work and thinking for me which is bad when trying to make robhust code.
+
 
