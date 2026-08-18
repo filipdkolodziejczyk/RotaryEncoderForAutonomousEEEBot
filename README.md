@@ -729,6 +729,257 @@ in the end i needed to change the new state to become the now old state (stableS
 
 # - V3.0 Object Orientated Programming (OOP!!!) 
 
-FINALLY, the last part i wanted to talk about when programming this the way i was taught in cpp at uni was a strict syntax with destructive constructive etc.... i cant remmember each part but using arduino is so much simpler but it does alot of the work and thinking for me which is bad when trying to make robhust code.
+FINALLY, the last part i wanted to talk about when programming this the way i was taught in cpp at uni was a strict syntax with destructive constructive etc.... i cant remmember each part but using arduino is so much simpler but it does alot of the work and thinking for me, which is bad when trying to make robhust code.
 
+I thought oop becuase the code will be future proof in the sense that i wuld have a class which would just list a bunch of manovers like figure of 8 and u turn etc anf further down the line this would be used when incorporating other sensors to carry out different tasks.
+
+
+ # - Servo 
+ 
+ i had to incoroporate the servo code for the car to turn code is below and ill explain what it does and how the servo works
+ 
+ ```cpp
+ 
+ 
+ //========Servo Settings====================================================================//
+// the way it works is that the servo receives a signal from the microcontroller every 20ms //
+// which is the 50Hz,the servo measures teh total time that the signal is ON for aka pulse  //
+// width. There is a contol circuit in the motor which translates a 1ms high signal to an   //
+// angle then the rest of the signal is low untill the next pulse arrives after 20ms.       //
+// microcontrollers can output a 1.5V it uses PWM to do this mathematically. microcontroller//
+// -s use high and low signals only.                                                        //
+//                                                                                          //
+// The microcontroller gets the 20ms and slices it into 12 bit resolution which is 4096 ticks//
+// 4096/20 gets you 204.8 ticks per 1ms so, for a lets say 90 degree angle i need 205 ticks //
+// so i need a high signal for 205 ticks then low for the rest. the pwm for the servos is used//
+// as a communication line rather than what the motor uses it for an average voltage        //
+//==========================================================================================//
+
+ 
+ 
+ // PWM Channel Properties
+const int servoFrequency = 50;    //50Hz
+const int servoChannel = 2;
+const int servoResolution = 12;   //12bit resolution 0 - 4095
+// Hardware Pin Configuration
+int servoPin = 13;
+float steeringAngle=93;  // variable to store the servo position
+
+ 
+ void moveServoToAngle(int degrees) {
+  // Map 0-180 degrees to the strict 1ms-2ms operational limits (205 to 410 ticks)
+  int pwmValue = map(degrees, 0, 180, 102, 512);
+
+  //Serial.print("Target Angle: ");
+  //Serial.print(degrees);
+  //Serial.print("°  --> Translated to 12-bit PWM Duty Value: ");
+  //Serial.println(pwmValue);
+
+  // Send the clean, verified signal directly to the hardware
+  ledcWrite(servoChannel, pwmValue);
+}
+ 
+ ```
+i had to figure out what my mid point on the servo is. Usually, you need to mechanically get put it in the middle by winding it anti clockwise all the ay then point it to 6 o'clock i did that and i got pretty close my mid point in 93 degrees i found this through trial and error as you can see the commented out code handles that.
+
+i think the explanation which is commented here serves as a good way to expalin servo function and the working of the control circuit actually within it.
+
+ 
+ # - Navigation Code 
+ 
+ i created a class using enum which assigned different movements to a int value
+ 
+ ``` cpp 
+ 
+ enum moveType {
+  stop = 0, forward = 1, left_turn = 2, right_turn = 3, right_tight = 4, left_tight = 5
+};
+
+```
+
+Next i defined my variable which will hold what move i do and for how many pulse counts 
+
+```cpp 
+
+struct NavScript{
+    moveType actions;
+    int pulseTarget;
+};
+
+```
+
+so NavScript will have a specific action it will do so stop or forward then it will do it for a specific pulse count.
+
+
+this is where i have the actual manovers which i will peform and my vision of having soecific manovers i can do comment it in or out or stack them one after the other. I will create an array of these data structires the array is route[] critically i dont set a fixed number of indexes in the array becuase i want this to dynamically change without changing it myself manually.
+
+```cpp 
+
+NavScript route[] = {
+  
+  //===figure of 8====//
+  {forward, 195},       //index 0
+  {right_turn, 125},     //index 1 
+  {left_turn, 740},        //index 2
+  {forward, 220},     //index 3 inside of the route array 
+  {right_turn, 780},
+  {forward, 200},
+
+  {stop, 0}
+ //==============================//
+ //====tightest turning circle==//
+ 
+ /*
+ {forward, 145},
+ {right_tight,600}
+ */
+ 
+ 
+};
+
+```
+
+The same logic i used by using a variable to index the matrix look up table is used here to scroll though the the route[] i also needed the code like i explained above to dynamically change the size of the array based on how many data structures there are in the array.
+
+```cpp
+
+int currentRouteIndex =0;
+int totalSteps =sizeof(route)/sizeof(route[0]);
+
+```
+so in cpp sizeof(x) operator return the byte size of x in RAM. So in my NavScript variable i have enum which is 4 bytes and also int which is 4 bytes this can be shrunk using unit_8 etc.. but im not concerened about memory here so each element in the route array contain 8 bytes each so with 7 elements 7*8 is 56 bytes.
+
+sizeof(route[0]) returns the size of element 0 which is 8 bytes so we get the variable total steps 7. this dynamically changes because durning the boot up/ compiling this is done automatically.
+
+this type of coding avoids hardcoding a constant int and missing or reading impossible array elements (buffer overflow). like i said the size is calculated during compiling so the microcontroller doesnt do any maths related to this during driving.
+
+
+ ## Now, moving onto the actual functions which scrolls through the array and how i use different settings for the car 
+ 
+ <details>
+<summary>🔻 <b>Click to expand V3.0 code </b></summary>
+
+<br>
+
+```cpp
+
+void Navigation(){
+  if(currentRouteIndex>=totalSteps){
+    Stop();
+  }
+  NavScript currentTarget = route[currentRouteIndex];
+  //code for when the target is reached i reset either encoder and i increase the current route index to +1 to the next step in the sequence 
+  if(leftPulseCount > currentTarget.pulseTarget || rightPulseCount > currentTarget.pulseTarget){
+    currentRouteIndex++;
+    leftPulseCount = 0;
+    rightPulseCount =0;
+  }
+
+  if(currentTarget.actions == forward){
+    moveServoToAngle(93);
+    goForwards();
+  }
+  else if(currentTarget.actions == left_turn){
+    //servo angle and motor speed adjustment 
+  moveServoToAngle(65);
+  digitalWrite(INa, LOW);
+  digitalWrite(INb, HIGH);
+  digitalWrite(INc, HIGH);
+  digitalWrite(INd, LOW);
+    // Drive at speed diff speeds
+  ledcWrite(ledChannela, 75);      //left motor  
+  ledcWrite(ledChannelb, 100);    // right motor
+                                  // IMPORTANT TO UNDERSTANDING so this is turning left and the channels are set to go forward but these channels are set in such a way that 
+                                  // the actual signal is a channelb = low and at a frequency of 200Hz therefore, a single pulse is 5ms and becuase it is set to a 8 bit
+                                  // resolution that means the 5ms is split into 8^2= 256 ticks so the 100 in the function is the amount of ticks that this is on for and 
+                                  // is not out of 100 you can switch it untill 255 dont pass 256 it will cause the code to go to 0 
+  }
+  else if(currentTarget.actions == right_turn){
+    //servo angle and motor speed 
+  moveServoToAngle(120);
+  digitalWrite(INa, LOW);
+  digitalWrite(INb, HIGH);
+  digitalWrite(INc, HIGH);
+  digitalWrite(INd, LOW);
+    // Drive at speed diff speeds
+  ledcWrite(ledChannela, 200);        //left motor      
+  ledcWrite(ledChannelb, 90);         // right motor
+  }
+  else if(currentTarget.actions == right_tight){
+  moveServoToAngle(120);
+  digitalWrite(INa, LOW);   //LEFT
+  digitalWrite(INb, HIGH);   //LEFT
+  digitalWrite(INc, LOW); //RIGHT
+  digitalWrite(INd, HIGH);  //RIGHT
+    // Drive at speed diff speeds
+  ledcWrite(ledChannela, 150);         //left motor
+  ledcWrite(ledChannelb, 70);         // right motor
+
+  }
+
+
+  else if(currentTarget.actions == stop){
+    moveServoToAngle(93);
+    Stop();
+  } return;
+}
+
+```
+
+
+I'll explain the main point of this code and the rest is self explanatory regarding adjusting the motor speed, direction and servo direction
+
+```cpp
+
+  if(currentRouteIndex>=totalSteps){
+    Stop();
+  }
+  NavScript currentTarget = route[currentRouteIndex];
+  //code for when the target is reached i reset either encoder and i increase the current route index to +1 to the next step in the sequence 
+  if(leftPulseCount > currentTarget.pulseTarget || rightPulseCount > currentTarget.pulseTarget){
+    currentRouteIndex++;
+    leftPulseCount = 0;
+    rightPulseCount =0;
+  }
+  
+  ```
+
+ - the top if we reach the current route index reaches the total steps in the script then we stop 
+ 
+ - all that i am doing with current target is creating another variable which can accses the array and fetch the current step that we are on
+ 
+ - the . is the member access operator which looks in currenttarget and fetches the pulse count 
+ 
+  - both wheels rarely travel at the same speed hence why i have or'd the condition 
+  
+  
+ - once the traget is reaches the pulse count has reset and the current route index has increased by 1 to move onto the next step in the script
+ 
+  ## breaking down a move in the script
+  
+  ```cpp 
+  
+    else if(currentTarget.actions == right_turn){
+    //servo angle and motor speed 
+  moveServoToAngle(120);
+  digitalWrite(INa, LOW);
+  digitalWrite(INb, HIGH);
+  digitalWrite(INc, HIGH);
+  digitalWrite(INd, LOW);
+    // Drive at speed diff speeds
+  ledcWrite(ledChannela, 200);        //left motor      
+  ledcWrite(ledChannelb, 90);         // right motor
+  }
+  
+  ```
+
+ - here im using the . to access what to what the current action is 
+ 
+  - if its a right turn then the servo angle like i have explained 120 degrees gets mapped to a specific clock cycle and the motors spin in opposite direction for a dighter turn finally, the actual speed the motors are spinning at i have adjusted here so the left motor spins fater and the right motor spins slower so i have again a tighter turn 
+  
+  
+  # Figure of 8 DEMO
+  
+  ![Autonomous Car Figure 8 Run](assets/ezgif.com-gif-maker.gif)
+  
 
